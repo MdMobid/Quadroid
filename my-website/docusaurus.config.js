@@ -6,13 +6,13 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
 (module.exports = {
   title: 'Quadroid',
   tagline: 'The Smart AI Voice Assistant To Help Humans',
-  url: 'https:/Curious-Squad.github.io',
-  baseUrl: '/quadroid-docs/',
+  url: 'https:/mdmobid.github.io',
+  baseUrl: '/quadroid/',
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
   favicon: 'img/favicon.ico',
-  organizationName: 'Curious-Squad', // Usually your GitHub org/user name.
-  projectName: 'quadroid-docs', // Usually your repo name.
+  organizationName: 'MdMobid', // Usually your GitHub org/user name.
+  projectName: 'quadroid', // Usually your repo name.
 
   presets: [
     [
