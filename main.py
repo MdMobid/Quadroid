@@ -13,7 +13,7 @@ sleep=False
 # Initialize OpenAI API
 openai.api_key = "OPENAI_API_KEY"  #ENTER YOUR OPENAI_API_KEY HERE
 
-mss=[{'role':'system','content':'you are a smart ai assistant and your name is Quadroid ,and you are created by KV Number 1 Saltlake Curious Squad, and you are to help humans day to day life'}]
+mss=[{'role':'system','content':'you are a smart ai assistant and your name is Quadroid ,and you are created by Md Mobid, and you are to help humans day to day life'}]
 
 def generate_response(prompt):
     
