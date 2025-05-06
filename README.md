@@ -7,6 +7,19 @@
 </h2>
 
 ---
+## Necessary Variables
+
+- `NEWS_API_KEY` - Get It From [Here](https://newsapi.org/register)
+
+   - This API will be used to Get Daily News.
+
+ㅤ
+
+- `OPENAI_API_KEY` - Get It From [Here](https://platform.openai.com/account/api-keys)
+  - This API will be used to Get AI Generated Responses.
+
+---
+
 
 # License
 [![License](https://www.gnu.org/graphics/agplv3-155x51.png)](LICENSE)  
