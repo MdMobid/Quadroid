@@ -3,6 +3,8 @@ import speech_recognition as sr
 import time
 from playsound import playsound
 import os
+from Functions.openfunc import openfunc
+from Functions.newsfunc import newsfunc
 from Functions.speak_text import speak_text
  
 x=0 #a flag to check if control is out of assistant
@@ -12,6 +14,7 @@ c1=False #to allow first question after wake up call
 sleep=False
 # Initialize OpenAI API
 openai.api_key = "OPENAI_API_KEY"  #ENTER YOUR OPENAI_API_KEY HERE
+
 
 mss=[{'role':'system','content':'you are a smart ai assistant and your name is Quadroid ,and you are created by Md Mobid, and you are to help humans day to day life'}]
 
@@ -54,14 +57,14 @@ def main():
                 plays("wake-up.mp3")
                 go=True
                 c1=True
-                tt1=time.time() 
-                #time.sleep(2)
+                tt1=time.time()
                 
             while go: 
                 plays("interface.mp3") 
                 print()
                 print("Say Something...")
                 speak_text("Say Something")
+                c2=int(time.time()-tt1)
                 
                 x=0  
                 filename = os.path.join(os.path.dirname(__file__), "input.wav")
@@ -77,22 +80,35 @@ def main():
                 transcript = openai.Audio.translate("whisper-1", audio_file)
                 text=transcript["text"]
                 print("tttex",tt-time.time())
+                
+                print(f"You said: {text}")
+                plays("response.wav")
 
                 if text == "Thank you." :
-                    speak_text("You're welcome! Feel free to ask if you have any more questions")
+                    speak_text("Quadroid: You're Welcome! Feel free to ask if you have any more questions")
+                    continue
+
+                elif "tell me some" in text.lower() and "news" in text.lower():
+                    topic_word = text.split(" ")[3]
+                    newsfunc(topic_word)
                     continue
 
                 elif "sleep" in text.lower():
-                    go=False
-                    sleep=True
-                    print("Going to Sleep..")
-                    speak_text("OK, Going to sleep, Call me When You Need Me")   
+                    sleep_word = text.split(" ")[-1]
+                    if "sleep" in sleep_word.lower():
+                        go=False
+                        sleep=True
+                        print("Quadroid: Going to Sleep..")
+                        speak_text("OK, Going to sleep, Call me When You Need Me")   
+
+                elif "open" in text.lower() or "close" in text.lower():
+                    a=text.lower()
+                    openfunc(a)
+                    continue
 
                 elif text:
-                    plays("response.wav")
                     tt1=time.time()
                     c1=False
-                    print(f"You said: {text}")
                     tt=time.time()
 
                     # generate the response
@@ -102,7 +118,6 @@ def main():
 
                     # read response using GPT-3
                     speak_text(response)
-                    print("Listening...")
 
                 else:
                     print("You Said Nothing, Please Try Again")

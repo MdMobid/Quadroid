@@ -4,3 +4,5 @@ pyttsx3
 playsound==1.2.2
 pipwin
 pyaudio
+AppOpener
+requests
