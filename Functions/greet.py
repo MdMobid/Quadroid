@@ -1,20 +1,16 @@
 import datetime
+
+# Importing Main Module Functions
 from Main.plays import plays
-from Main.speak_text import speak_text
+from Main.speak_text import speak_print
 
 def greet():
     now = datetime.datetime.now()
     hour = now.hour
     plays("response.wav")
     if hour < 12:
-        gmtxt = "Good Morning Sir!, How May I Help You?"
-        print(gmtxt)
-        speak_text(gmtxt)
+        speak_print("Good Morning Sir!, How May I Help You?")
     elif hour < 18:
-        gatxt = "Good Afternoon Sir!, How May I Help You?"
-        print(gatxt)
-        speak_text(gatxt)
+        speak_print("Good Afternoon Sir!, How May I Help You?")
     else:
-        getxt = "Good Evening Sir!, How May I Help You?"
-        print(getxt)
-        speak_text(getxt)
+        speak_print("Good Evening Sir!, How May I Help You?")

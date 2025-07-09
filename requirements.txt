@@ -1,8 +1,11 @@
-openai
+openai==0.28
 SpeechRecognition
 pyttsx3
 playsound==1.2.2
 pipwin
 pyaudio
+pywin32
 AppOpener
 requests
+pyautogui
+pygetwindow

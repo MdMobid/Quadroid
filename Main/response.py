@@ -1,8 +1,11 @@
-import openai
 
 def generate_response(prompt):
-
-    mss=[{'role':'system','content':'you are a smart ai assistant and your name is Quadroid ,and you are created by Md Mobid, and you are to help humans day to day life'}]
+    import openai
+    from .quadpath import quadpath
+    filename = 'Main\quadroid.txt'
+    with open(filename,'r') as file:
+        data = file.read()
+    mss=[{'role':'system','content':data}]
     
     mss.append(
         {"role": "user", "content": prompt},

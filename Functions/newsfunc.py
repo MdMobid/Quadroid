@@ -1,18 +1,16 @@
 import requests
-import json
+
+# Importing Main Module Functions
 from Main.speak_text import speak_text
-from Main.quadpath import quadpath
+from Main.db import getdb
 
-# Imports From The Databases
-congif_path = quadpath('Databases', 'config.json')
-with open(congif_path, "r") as f:
-    data = json.load(f)
 
-def newsfunc(topic_word):
+def newsfunc(text):
+
+    topic_word = text.split(" ")[3]
     
     # INITIALIZING YOUR API KEY HERE FROM DATABASES
-    api_keys = data["api_keys"]
-    api_key = api_keys["NEWS_API_KEY"]
+    api_key = getdb("config","NEWS_API_KEY")
 
     # No.of News You want to listen in One go:
     news_counter=3
