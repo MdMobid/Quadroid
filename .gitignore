@@ -1,0 +1,20 @@
+# Virtual Environment
+.venv/
+env/
+venv/
+ENV/
+
+# Environment Variables
+.env
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+
+# Temporary databases & screenshots
+Screenshots/*.png
+Screenshots/*.jpg
+Notes/*.txt
+Inputs/*.wav
