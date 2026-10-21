@@ -98,7 +98,7 @@ class TTSEngine:
                         self._speak_edge_tts(text)
                         return
                     except Exception as e:
-                        logger.warning(f"Edge-TTS failed ({e}), falling back to offline voice.")
+                        logger.warning(f"Edge-TTS unavailable ({type(e).__name__}), falling back to offline voice.")
 
                 # Offline pyttsx3 fallback
                 if self.offline_engine:
@@ -107,6 +107,7 @@ class TTSEngine:
                         self.offline_engine.runAndWait()
                     except Exception:
                         try:
+                            
                             self.offline_engine = pyttsx3.init()
                             self.offline_engine.say(text)
                             self.offline_engine.runAndWait()

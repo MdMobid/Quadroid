@@ -14,8 +14,14 @@ from quadroid.tools import execute_tool
 class Agent:
     """Core Quadroid Agent with Fast LLM Tool Calling and Built-in Offline Fallback Router."""
 
-    def __init__(self, on_action_callback: Optional[Callable[[str, Dict[str, Any]], None]] = None):
-        self.llm_client = LLMClient()
+    def __init__(
+        self,
+        on_action_callback: Optional[Callable[[str, Dict[str, Any]], None]] = None,
+        llm_client: Optional[LLMClient] = None,
+        provider: Optional[str] = None,
+        model: Optional[str] = None
+    ):
+        self.llm_client = llm_client or LLMClient(provider=provider, model=model)
         self.on_action_callback = on_action_callback
         self.session_id = str(uuid.uuid4())[:8]
         self.history: List[Dict[str, Any]] = [
@@ -248,18 +254,45 @@ class Agent:
                         "content": json.dumps(result)
                     })
 
-                final_response = self.llm_client.chat_completion(messages=self.history)
-                final_text = final_response.choices[0].message.content or "Done."
+                final_response = self.llm_client.chat_completion(messages=self.history, tools=[])
+                final_text = (final_response.choices[0].message.content or "").strip()
+                if final_text.startswith("{") and "name" in final_text:
+                    try:
+                        parsed = json.loads(final_text)
+                        if isinstance(parsed, dict):
+                            final_text = parsed.get("message") or parsed.get("response") or "Completed."
+                    except Exception:
+                        pass
+                final_text = final_text or "Done."
                 self.history.append({"role": "assistant", "content": final_text})
 
                 return {"response": final_text, "actions": actions_taken, "success": True}
 
             else:
-                reply_text = response_msg.content or "Acknowledged."
+                reply_text = (response_msg.content or "").strip()
+                # Handle raw JSON output from smaller local models (Ollama text-based function calls)
+                if reply_text.startswith("{") and "name" in reply_text:
+                    try:
+                        parsed = json.loads(reply_text)
+                        if isinstance(parsed, dict) and "name" in parsed:
+                            candidate_func = parsed["name"]
+                            # If it's an actual defined tool, execute it!
+                            if any(t["function"]["name"] == candidate_func for t in TOOL_DEFINITIONS):
+                                candidate_args = parsed.get("parameters") or parsed.get("arguments") or {}
+                                res = self._trigger_action(candidate_func, candidate_args)
+                                actions_taken.append({"tool": candidate_func, "args": candidate_args, "result": res})
+                                return {"response": f"Executed {candidate_func}.", "actions": actions_taken, "success": True}
+                            else:
+                                # Hallucinated tool name from local model: provide direct identity description
+                                reply_text = "I am Quadroid, your AI desktop assistant. I can automate PC hardware, manage files and apps, check system stats, search the web, and run tasks both online and 100% offline."
+                    except Exception:
+                        pass
+
+                reply_text = reply_text or "Acknowledged."
                 self.history.append({"role": "assistant", "content": reply_text})
                 return {"response": reply_text, "actions": [], "success": True}
 
-        except Exception:
+        except Exception as e:
             # 2. Instant local rule fallback
             fallback_res = self._fallback_intent_router(user_input)
             if fallback_res:
@@ -270,6 +303,10 @@ class Agent:
                     "success": True
                 }
 
-            msg = f"Acknowledged '{user_input}'. To enable complex generative reasoning, please start Ollama or configure an API key in your .env file."
+            err_str = str(e).lower()
+            if "429" in err_str or "quota" in err_str or "resource_exhausted" in err_str:
+                msg = f"Acknowledged '{user_input}'. Cloud rate limit reached (429). Switch to offline Ollama mode in .env or wait a moment."
+            else:
+                msg = f"Acknowledged '{user_input}'. To enable complex generative reasoning, please start Ollama or configure an API key in your .env file."
             self.history.append({"role": "assistant", "content": msg})
             return {"response": msg, "actions": [], "success": True}

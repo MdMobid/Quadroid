@@ -22,3 +22,7 @@ Screenshots/*.png
 Screenshots/*.jpg
 Notes/*.txt
 Inputs/*.wav
+
+# Temp outputs
+graphify-out/
+.planning/

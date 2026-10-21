@@ -20,7 +20,7 @@ AppOpener>=1.7
 
 # Audio, Speech & Wake-Word
 pyttsx3>=2.90
-edge-tts>=6.1.0
+edge-tts>=7.3.1
 pygame>=2.6.0
 SpeechRecognition>=3.10.0
 PyAudio>=0.2.14

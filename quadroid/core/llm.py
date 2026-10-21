@@ -32,17 +32,6 @@ def ensure_ollama_running() -> bool:
     if is_ollama_online():
         return True
 
-    app_path = os.path.expandvars(r"%LOCALAPPDATA%\Programs\Ollama\ollama app.exe")
-    if os.path.exists(app_path) and hasattr(os, "startfile"):
-        try:
-            os.startfile(app_path)
-            for _ in range(20):
-                time.sleep(0.2)
-                if is_ollama_online():
-                    return True
-        except Exception:
-            pass
-
     ollama_candidates = [
         os.path.expandvars(r"%LOCALAPPDATA%\Programs\Ollama\ollama.exe"),
         r"C:\Program Files\Ollama\ollama.exe",
@@ -59,8 +48,7 @@ def ensure_ollama_running() -> bool:
                     stderr=subprocess.DEVNULL,
                     creationflags=creation_flags
                 )
-                
-                for _ in range(20):
+                for _ in range(15):
                     time.sleep(0.2)
                     if is_ollama_online():
                         return True
@@ -74,9 +62,9 @@ def ensure_ollama_running() -> bool:
 class LLMClient:
     """Multi-provider LLM Client supporting Google Gemini, Ollama, Groq, OpenAI, and NVIDIA."""
 
-    def __init__(self):
-        self.provider = Config.LLM_PROVIDER
-        self.model = Config.LLM_MODEL
+    def __init__(self, provider: Optional[str] = None, model: Optional[str] = None):
+        self.provider = provider or Config.LLM_PROVIDER
+        self.model = model or Config.LLM_MODEL
         
         # If Ollama or offline mode is chosen, ensure Ollama daemon is active
         if Config.is_offline() or self.provider == "ollama":
@@ -168,6 +156,20 @@ class LLMClient:
 
         return None
 
+    def _create_ollama_fallback(self) -> tuple[Optional[Any], str]:
+        """Creates an Ollama client instance for offline fallback when cloud is unavailable."""
+        ensure_ollama_running()
+        if is_ollama_online():
+            fallback_model = getattr(Config, "OLLAMA_MODEL", "llama3.2:3b")
+            client = OpenAI(
+                base_url=getattr(Config, "OLLAMA_BASE_URL", "http://localhost:11434/v1"),
+                api_key="ollama",
+                timeout=45.0,
+                max_retries=1
+            )
+            return client, fallback_model
+        return None, ""
+
     def is_available(self) -> bool:
         """Check if an LLM client backend is ready."""
         if self.client:
@@ -201,7 +203,8 @@ class LLMClient:
             )
             return response
         except Exception as e:
-            if "tools" in str(e).lower() or "function" in str(e).lower():
+            err_str = str(e).lower()
+            if "tools" in err_str or "function" in err_str:
                 response = self.client.chat.completions.create(
                     model=effective_model,
                     messages=messages,
@@ -209,4 +212,26 @@ class LLMClient:
                     max_tokens=500
                 )
                 return response
+
+            # If cloud request failed (429 rate limit, network drop, 5xx), attempt local Ollama failover
+            if self.provider != "ollama":
+                fb_client, fb_model = self._create_ollama_fallback()
+                if fb_client:
+                    try:
+                        return fb_client.chat.completions.create(
+                            model=fb_model,
+                            messages=messages,
+                            tools=tools_param if len(tools_param) > 0 else None,
+                            tool_choice=tool_choice if len(tools_param) > 0 else None,
+                            temperature=0.3,
+                            max_tokens=600
+                        )
+                    except Exception as fb_err:
+                        if "tools" in str(fb_err).lower() or "function" in str(fb_err).lower():
+                            return fb_client.chat.completions.create(
+                                model=fb_model,
+                                messages=messages,
+                                temperature=0.4,
+                                max_tokens=500
+                            )
             raise e
