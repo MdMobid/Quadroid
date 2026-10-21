@@ -1,3 +1,6 @@
+"""
+Quadroid Web Tools — Browser automation, web searching, email composing, weather, and news.
+"""
 import urllib.parse
 import webbrowser
 import requests
@@ -6,47 +9,90 @@ from typing import Dict, Any, List
 
 def open_url(url: str) -> Dict[str, Any]:
     """
-    Open any website, video, or link in the user's default web browser.
+    Open any website, video, or link in the user's default web browser (e.g. Google Chrome, Edge).
     
-    :param url: Web URL to open (e.g. 'https://youtube.com', 'https://github.com').
+    :param url: Web URL or domain to open (e.g. 'https://github.com', 'youtube.com', 'mail.google.com').
     """
+    url = url.strip()
     if not url.startswith(("http://", "https://")):
         url = "https://" + url
     try:
         webbrowser.open(url)
-        return {"success": True, "message": f"Opened {url} in browser."}
+        return {"success": True, "message": f"Opened {url} in web browser."}
     except Exception as e:
         return {"success": False, "error": str(e)}
 
 
-def web_search(query: str) -> Dict[str, Any]:
+def web_search(query: str, engine: str = "google") -> Dict[str, Any]:
     """
-    Search the web for queries or topics and open the search results.
+    Search the web for queries, topics, or sites and open the search results in the browser.
     
-    :param query: Query string to search for on the web.
+    :param query: Query string to search for on the web (e.g. 'GitHub', 'Python tutorials', 'latest movies').
+    :param engine: Search engine ('google', 'bing', 'duckduckgo', 'youtube', 'github').
     """
     query = query.strip()
     if not query:
         return {"success": False, "error": "Query cannot be empty."}
 
     encoded = urllib.parse.quote_plus(query)
-    search_url = f"https://www.google.com/search?q={encoded}"
+    
+    engine_urls = {
+        "google": f"https://www.google.com/search?q={encoded}",
+        "github": f"https://github.com/search?q={encoded}",
+        "youtube": f"https://www.youtube.com/results?search_query={encoded}",
+        "bing": f"https://www.bing.com/search?q={encoded}",
+        "duckduckgo": f"https://duckduckgo.com/?q={encoded}"
+    }
+    
+    search_url = engine_urls.get(engine.lower(), engine_urls["google"])
+    
     try:
         webbrowser.open(search_url)
-        return {"success": True, "message": f"Searching web for '{query}'", "url": search_url}
+        return {"success": True, "message": f"Searching for '{query}' on {engine.title()}.", "url": search_url}
     except Exception as e:
         return {"success": False, "error": str(e)}
 
 
+def compose_email(to: str = "", subject: str = "", body: str = "") -> Dict[str, Any]:
+    """
+    Open Gmail or default email client with a pre-filled draft to compose an email.
+    
+    :param to: Recipient email address (e.g. 'friend@example.com').
+    :param subject: Email subject line.
+    :param body: Email message body content.
+    """
+    encoded_to = urllib.parse.quote(to.strip())
+    encoded_su = urllib.parse.quote(subject.strip())
+    encoded_body = urllib.parse.quote(body.strip())
+    
+    # Direct Gmail Web Compose URL
+    gmail_url = f"https://mail.google.com/mail/?view=cm&fs=1&to={encoded_to}&su={encoded_su}&body={encoded_body}"
+    
+    try:
+        webbrowser.open(gmail_url)
+        return {
+            "success": True,
+            "message": f"Opened Gmail draft to '{to or 'new recipient'}' with subject '{subject or 'No subject'}'.",
+            "url": gmail_url
+        }
+    except Exception as e:
+        # Fallback to mailto protocol
+        mailto_url = f"mailto:{encoded_to}?subject={encoded_su}&body={encoded_body}"
+        try:
+            webbrowser.open(mailto_url)
+            return {"success": True, "message": "Opened default email client compose window."}
+        except Exception as e2:
+            return {"success": False, "error": f"Failed to open email composer: {str(e2)}"}
+
+
 def get_weather(city: str = "") -> Dict[str, Any]:
     """
-    Get live weather information for any city or user's current location (Free, no API key required).
+    Get live weather information for any city or user's current location.
     
     :param city: City name (e.g. 'New York', 'London', 'Tokyo') or leave blank for local weather.
     """
     city_clean = city.strip().replace(" ", "+")
     try:
-        # Use wttr.in format=j1 for clean JSON
         url = f"https://wttr.in/{city_clean}?format=j1" if city_clean else "https://wttr.in/?format=j1"
         response = requests.get(url, timeout=5, headers={"User-Agent": "curl/7.68.0"})
         if response.status_code == 200:
@@ -71,7 +117,6 @@ def get_weather(city: str = "") -> Dict[str, Any]:
                 "summary": summary
             }
     except Exception as e:
-        # Fallback to opening browser weather
         if city_clean:
             webbrowser.open(f"https://www.google.com/search?q=weather+{city_clean}")
         return {"success": False, "error": f"Could not fetch weather: {str(e)}"}
@@ -85,7 +130,6 @@ def get_latest_news(topic: str = "technology") -> Dict[str, Any]:
     """
     topic_clean = topic.strip()
     try:
-        # Fetch RSS news feed parsed safely
         rss_url = f"https://news.google.com/rss/search?q={urllib.parse.quote_plus(topic_clean)}&hl=en-US&gl=US&ceid=US:en"
         import xml.etree.ElementTree as ET
         resp = requests.get(rss_url, timeout=5)

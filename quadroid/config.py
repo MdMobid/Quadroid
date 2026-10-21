@@ -1,6 +1,15 @@
 import os
 import socket
+import warnings
 from pathlib import Path
+
+# Suppress noisy HuggingFace / tokenizers notices
+os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
+os.environ["HF_HUB_DISABLE_IMPLICIT_TOKEN"] = "1"
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+warnings.filterwarnings("ignore", message=".*unauthenticated requests.*")
+warnings.filterwarnings("ignore", module="huggingface_hub.*")
+warnings.filterwarnings("ignore", module="sentence_transformers.*")
 
 # Try to load python-dotenv
 try:
@@ -17,13 +26,15 @@ class Config:
     DATA_DIR = ROOT_DIR / "Databases"
     NOTES_DIR = ROOT_DIR / "Databases" / "notes"
     SCREENSHOTS_DIR = ROOT_DIR / "Databases" / "screenshots"
+    MEMORY_DIR = ROOT_DIR / "Databases" / "memory"
 
     # Operation Mode
     OPERATION_MODE = os.getenv("OPERATION_MODE", "auto").lower()  # auto, offline, online
 
     # LLM Settings
-    LLM_PROVIDER = os.getenv("LLM_PROVIDER", "ollama").lower()  # ollama, gemini, openai, groq
-    LLM_MODEL = os.getenv("LLM_MODEL", "llama3.2:3b")
+    LLM_PROVIDER = os.getenv("LLM_PROVIDER", "nemotron").lower()  # ollama, nemotron, gemini, openai, groq
+    LLM_MODEL = os.getenv("LLM_MODEL", os.getenv("OLLAMA_MODEL", "qwen2.5:7b"))
+    OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", os.getenv("LLM_MODEL", "qwen2.5:7b"))
     OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
 
     # API Keys (Cleaned of any surrounding quotes)
@@ -48,6 +59,10 @@ class Config:
     WAKE_WORD_ENABLED = os.getenv("WAKE_WORD_ENABLED", "true").lower() in ("true", "1", "yes")
     ENABLE_VOICE_FEEDBACK = os.getenv("ENABLE_VOICE_FEEDBACK", "true").lower() in ("true", "1", "yes")
 
+    # Memory & RAG
+    ENABLE_MEMORY = os.getenv("ENABLE_MEMORY", "true").lower() in ("true", "1", "yes")
+    MEMORY_MAX_RECALL = int(os.getenv("MEMORY_MAX_RECALL", "3"))
+
     # GUI Settings
     GUI_THEME = os.getenv("GUI_THEME", "dark")
     GLOBAL_HOTKEY = os.getenv("GLOBAL_HOTKEY", "alt+space")
@@ -58,6 +73,7 @@ class Config:
         cls.DATA_DIR.mkdir(parents=True, exist_ok=True)
         cls.NOTES_DIR.mkdir(parents=True, exist_ok=True)
         cls.SCREENSHOTS_DIR.mkdir(parents=True, exist_ok=True)
+        cls.MEMORY_DIR.mkdir(parents=True, exist_ok=True)
 
     @classmethod
     def is_connected_to_internet(cls, timeout: float = 1.5) -> bool:

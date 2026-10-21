@@ -29,9 +29,17 @@ from quadroid.tools.files import (
     search_files,
     open_path_in_explorer
 )
+from quadroid.tools.file_ops import (
+    delete_file,
+    move_file,
+    copy_file,
+    rename_file,
+    create_folder
+)
 from quadroid.tools.web import (
     open_url,
     web_search,
+    compose_email,
     get_weather,
     get_latest_news
 )
@@ -60,8 +68,14 @@ TOOL_REGISTRY: Dict[str, Callable] = {
     "read_note": read_note,
     "search_files": search_files,
     "open_path_in_explorer": open_path_in_explorer,
+    "delete_file": delete_file,
+    "move_file": move_file,
+    "copy_file": copy_file,
+    "rename_file": rename_file,
+    "create_folder": create_folder,
     "open_url": open_url,
     "web_search": web_search,
+    "compose_email": compose_email,
     "get_weather": get_weather,
     "get_latest_news": get_latest_news,
     "run_powershell_command": run_powershell_command,
@@ -289,6 +303,81 @@ TOOL_DEFINITIONS: List[Dict[str, Any]] = [
             }
         }
     },
+    # ── File Operations (with confirmation popups) ──
+    {
+        "type": "function",
+        "function": {
+            "name": "delete_file",
+            "description": "Permanently delete a file or folder. User confirmation popup will appear before deletion.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "Absolute path to the file or folder to delete"}
+                },
+                "required": ["path"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "move_file",
+            "description": "Move a file or folder to a new location. User confirmation popup will appear.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "source": {"type": "string", "description": "Source file or folder path"},
+                    "destination": {"type": "string", "description": "Destination path"}
+                },
+                "required": ["source", "destination"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "copy_file",
+            "description": "Copy a file or folder to a destination.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "source": {"type": "string", "description": "Source file or folder path"},
+                    "destination": {"type": "string", "description": "Destination path"}
+                },
+                "required": ["source", "destination"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "rename_file",
+            "description": "Rename a file or folder. User confirmation popup will appear.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "Path to the file or folder to rename"},
+                    "new_name": {"type": "string", "description": "New name (just the name, not full path)"}
+                },
+                "required": ["path", "new_name"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "create_folder",
+            "description": "Create a new directory/folder.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "Absolute path of the folder to create"}
+                },
+                "required": ["path"]
+            }
+        }
+    },
+    # ── Web & Info ──
     {
         "type": "function",
         "function": {
@@ -307,13 +396,30 @@ TOOL_DEFINITIONS: List[Dict[str, Any]] = [
         "type": "function",
         "function": {
             "name": "web_search",
-            "description": "Search Google or the web for answers, topics, or sites.",
+            "description": "Search Google, GitHub, YouTube, or the web for queries, topics, or sites and open results in browser.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "query": {"type": "string", "description": "Search query text"}
+                    "query": {"type": "string", "description": "Search query text (e.g. 'GitHub', 'FastAPI tutorial')"},
+                    "engine": {"type": "string", "description": "Search engine: 'google', 'github', 'youtube', 'bing', 'duckduckgo'"}
                 },
                 "required": ["query"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "compose_email",
+            "description": "Open Gmail with a pre-filled compose window to draft or send an email.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "to": {"type": "string", "description": "Recipient email address"},
+                    "subject": {"type": "string", "description": "Email subject line"},
+                    "body": {"type": "string", "description": "Email message body content"}
+                },
+                "required": []
             }
         }
     },
@@ -349,7 +455,7 @@ TOOL_DEFINITIONS: List[Dict[str, Any]] = [
         "type": "function",
         "function": {
             "name": "run_powershell_command",
-            "description": "Execute a PowerShell command on the Windows system and return the output.",
+            "description": "Execute a PowerShell command on the Windows system and return the output. User confirmation popup will appear before execution.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -365,7 +471,7 @@ TOOL_DEFINITIONS: List[Dict[str, Any]] = [
 def execute_tool(tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
     """
     Execute a registered tool by name with arguments.
-    
+
     :param tool_name: Registered tool function name.
     :param arguments: Dictionary of arguments.
     :return: Tool execution result dictionary.

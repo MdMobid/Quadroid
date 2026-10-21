@@ -1,0 +1,26 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
+  "python.analysis.ignore": [
+    "**/.venv/**",
+    "**/venv/**",
+    "**/Functions/**",
+    "**/Main/**"
+  ],
+  "python.analysis.exclude": [
+    "**/.venv/**",
+    "**/venv/**",
+    "**/Functions/**",
+    "**/Main/**"
+  ],
+  "python.analysis.diagnosticSeverityOverrides": {
+    "reportMissingImports": "none",
+    "reportMissingTypeStubs": "none",
+    "reportUnknownMemberType": "none",
+    "reportUnknownVariableType": "none",
+    "reportUnknownArgumentType": "none"
+  },
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/.pytest_cache": true
+  }
+}

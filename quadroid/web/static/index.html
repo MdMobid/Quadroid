@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QUADROID</title>
+
+  <!-- Google Fonts: Orbitron (Sci-Fi headers) & Inter (UI) & JetBrains Mono (Code) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Orbitron:wght@600;800;900&display=swap"
+    rel="stylesheet">
+
+  <!-- FontAwesome Icons & Three.js WebGL library -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body class="cyber-theme">
+  <!-- Scanline & Holographic Grid Overlay -->
+  <div class="hud-overlay"></div>
+  <div class="hologram-grid"></div>
+
+  <!-- Main Container -->
+  <div class="hud-container">
+
+    <!-- Top Telemetry Bar -->
+    <header class="telemetry-bar">
+      <div class="brand-badge">
+        <div class="pulse-dot"></div>
+        <span class="brand-title" id="assistantTitle">QUADROID</span>
+        <span class="version-tag">v3.0</span>
+      </div>
+
+      <div class="telemetry-gauges">
+        <div class="gauge-chip" id="cpuChip">
+          <i class="fa-solid fa-microchip"></i>
+          <span class="chip-label">CPU</span>
+          <span class="chip-value" id="cpuVal">0%</span>
+          <div class="mini-bar">
+            <div class="mini-bar-fill" id="cpuBar" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <div class="gauge-chip" id="ramChip">
+          <i class="fa-solid fa-memory"></i>
+          <span class="chip-label">RAM</span>
+          <span class="chip-value" id="ramVal">0%</span>
+          <div class="mini-bar">
+            <div class="mini-bar-fill" id="ramBar" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <div class="gauge-chip" id="batChip">
+          <i class="fa-solid fa-battery-half" id="batIcon"></i>
+          <span class="chip-label">BAT</span>
+          <span class="chip-value" id="batVal">--%</span>
+        </div>
+
+        <div class="status-pill online" id="statusPill">
+          <span class="status-indicator"></span>
+          <span id="providerName">NEMOTRON 30B</span>
+        </div>
+
+        <div class="mic-toggle-chip" id="autoMicToggleBtn" title="Toggle Continuous Listening Mode">
+          <i class="fa-solid fa-microphone-lines"></i>
+          <span class="toggle-label">CONTINUOUS MIC</span>
+          <div class="toggle-switch" id="autoMicSwitch"></div>
+        </div>
+
+        <div class="clock-chip" id="clockDisplay">00:00:00</div>
+      </div>
+    </header>
+
+    <!-- Center Workspace -->
+    <main class="hud-main">
+
+      <!-- Left Panel: 3D Holographic Core & Telemetry -->
+      <section class="hologram-viewport">
+        <!-- 3D WebGL Canvas -->
+        <div id="threejs-canvas-container"></div>
+
+        <!-- Hologram Status Ring -->
+        <div class="hologram-caption">
+          <div class="state-badge idle" id="aiStateBadge">
+            <i class="fa-solid fa-circle-nodes"></i>
+            <span id="aiStateText">AI CORE READY</span>
+          </div>
+          <p class="voice-hint">Say <span class="hot-word" id="wakeWordTag">"Hey Quadroid"</span> or click the mic</p>
+        </div>
+
+        <!-- Quick Telemetry Cards -->
+        <div class="system-mini-cards">
+          <div class="mini-card" id="memCardBtn">
+            <i class="fa-solid fa-brain"></i>
+            <div>
+              <div class="card-title">MEMORY BANK</div>
+              <div class="card-sub" id="memCountLabel">-- Entries Stored</div>
+            </div>
+          </div>
+
+          <div class="mini-card" id="settingsCardBtn">
+            <i class="fa-solid fa-sliders"></i>
+            <div>
+              <div class="card-title">SYSTEM SPECS</div>
+              <div class="card-sub" id="osSubLabel">Windows 11 x64</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Panel: Conversation Stream & Intelligence -->
+      <section class="chat-terminal">
+        <div class="terminal-header">
+          <span class="term-title"><i class="fa-solid fa-terminal"></i> NEURAL STREAM</span>
+          <button class="icon-btn" id="clearChatBtn" title="Clear Feed"><i class="fa-solid fa-trash-can"></i></button>
+        </div>
+
+        <!-- Chat Feed -->
+        <div class="chat-stream" id="chatStream">
+          <div class="msg-bubble assistant-bubble">
+            <div class="bubble-meta">
+              <span class="sender-tag" id="welcomeSender">◆ QUADROID</span>
+              <span class="time-tag">SYSTEM ONLINE</span>
+            </div>
+            <div class="bubble-text">
+              Neural Link Online. Systems operational. All Windows automation tools, persistent memory, and NVIDIA
+              Nemotron engine are active.
+            </div>
+          </div>
+        </div>
+
+        <!-- Active Tool Execution Alert -->
+        <div class="tool-action-bar" id="toolActionBar" style="display: none;">
+          <div class="spinner"></div>
+          <span class="tool-name" id="activeToolName">EXECUTING: get_system_stats()</span>
+        </div>
+
+        <!-- Quick Action Command Deck -->
+        <div class="quick-deck">
+          <button class="quick-pill" data-cmd="Take a screenshot"><i class="fa-solid fa-camera"></i> Screenshot</button>
+          <button class="quick-pill" data-cmd="Mute system audio"><i class="fa-solid fa-volume-xmark"></i> Mute</button>
+          <button class="quick-pill" data-cmd="Check my battery percentage"><i class="fa-solid fa-bolt"></i>
+            Battery</button>
+          <button class="quick-pill" data-cmd="Get system stats"><i class="fa-solid fa-gauge-high"></i> System</button>
+          <button class="quick-pill" data-cmd="Search for files on my computer"><i class="fa-solid fa-folder-open"></i>
+            Find Files</button>
+          <button class="quick-pill" data-cmd="What is the weather today?"><i class="fa-solid fa-cloud-sun"></i>
+            Weather</button>
+        </div>
+
+        <!-- Input Deck -->
+        <div class="input-deck">
+          <button class="cyber-mic-btn" id="micBtn" title="Speak to Quadroid">
+            <i class="fa-solid fa-microphone"></i>
+            <div class="mic-wave-ring"></div>
+          </button>
+
+          <div class="input-wrapper">
+            <input type="text" id="userInput" placeholder="Enter directive or command..." autocomplete="off">
+            <button class="send-btn" id="sendBtn"><i class="fa-solid fa-paper-plane"></i></button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Bottom Status Bar -->
+    <footer class="hud-footer">
+      <span class="footer-item"><i class="fa-solid fa-shield-halved"></i> SAFETY OVERRIDE ACTIVE</span>
+      <span class="footer-item" id="footerUptime">UPTIME: 00:00</span>
+      <span class="footer-item" id="footerEndpoint">WS: CONNECTED</span>
+    </footer>
+
+  </div>
+
+  <!-- Holographic Confirmation Modal -->
+  <div class="cyber-modal" id="confirmModal" style="display: none;">
+    <div class="modal-backdrop"></div>
+    <div class="modal-card">
+      <div class="modal-header">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span id="modalTitle">SECURITY CONFIRMATION</span>
+      </div>
+      <div class="modal-body" id="modalMessage">
+        Quadroid is requesting permission to delete a file.
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn deny" id="modalDenyBtn"><i class="fa-solid fa-xmark"></i> ABORT</button>
+        <button class="modal-btn allow" id="modalAllowBtn"><i class="fa-solid fa-check"></i> AUTHORIZE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Memory Bank Modal -->
+  <div class="cyber-modal" id="memoryModal" style="display: none;">
+    <div class="modal-backdrop"></div>
+    <div class="modal-card large">
+      <div class="modal-header">
+        <i class="fa-solid fa-brain"></i>
+        <span>PERSISTENT MEMORY & RAG BANK</span>
+        <button class="modal-close" id="closeMemModal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body" id="memoryModalBody">
+        <div class="memory-grid">
+          <div class="mem-stat-card">
+            <h4>CONVERSATIONS</h4>
+            <div class="stat-num" id="memTotalCount">0</div>
+          </div>
+          <div class="mem-stat-card">
+            <h4>VECTOR ENTRIES</h4>
+            <div class="stat-num" id="memVectorCount">0</div>
+          </div>
+          <div class="mem-stat-card">
+            <h4>PROFILE FACTS</h4>
+            <div class="stat-num" id="memFactsCount">0</div>
+          </div>
+        </div>
+
+        <h4 class="section-title">Learned User Profile</h4>
+        <div class="profile-chips" id="profileChips">
+          <span class="empty-hint">Learning from your conversations...</span>
+        </div>
+
+        <h4 class="section-title">Recent Memory History</h4>
+        <div class="recent-mem-list" id="recentMemList"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+
+</html>

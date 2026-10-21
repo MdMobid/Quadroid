@@ -14,6 +14,10 @@ __pycache__/
 *.pyd
 
 # Temporary databases & screenshots
+Databases/screenshots/
+Databases/notes/
+Databases/memory/
+Databases/config.json
 Screenshots/*.png
 Screenshots/*.jpg
 Notes/*.txt

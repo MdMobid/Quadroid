@@ -1,0 +1,23 @@
+{
+  "include": [
+    "quadroid",
+    "run.py",
+    "setup.py",
+    "main.py"
+  ],
+  "exclude": [
+    ".venv",
+    "venv",
+    "Functions",
+    "Main",
+    "**/__pycache__"
+  ],
+  "ignore": [
+    ".venv",
+    "venv",
+    "Functions",
+    "Main"
+  ],
+  "reportMissingImports": "none",
+  "reportMissingTypeStubs": "none"
+}

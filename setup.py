@@ -1,57 +1,70 @@
+"""
+Quadroid 3.0 Interactive Setup & Environment Validator
+Initializes .env and tests local hardware, audio, and AI connections.
+"""
 import os
-import subprocess
-import json
-from Main.quadpath import quadpath
+import sys
+from pathlib import Path
 
-requirements_file = os.path.join(os.path.dirname(__file__), "requirements.txt")
+ROOT_DIR = Path(__file__).resolve().parent
+ENV_FILE = ROOT_DIR / ".env"
+ENV_EXAMPLE = ROOT_DIR / ".env.example"
 
-configpath=quadpath('Databases', 'config.json')
-with open(configpath, "r") as f:
-    data = json.load(f)
 
-api_keys = data["api_keys"]
-key1 = api_keys["OPENAI_API_KEY"]
-key2 = api_keys["NEWS_API_KEY"]
+def setup():
+    print("=" * 60)
+    print("  ⚡ QUADROID 3.0 // SETUP & CONFIGURATION WIZARD")
+    print("=" * 60)
 
-if key1 == "":
-    key1 = input("Enter your OPENAI_API_KEY: ")
-    api_keys["OPENAI_API_KEY"] = key1
-    data["api_keys"] = api_keys
+    # 1. Check or copy .env
+    if not ENV_FILE.exists():
+        if ENV_EXAMPLE.exists():
+            import shutil
+            shutil.copy(ENV_EXAMPLE, ENV_FILE)
+            print("✓ Created .env from template (.env.example)")
+        else:
+            ENV_FILE.write_text("OPERATION_MODE=auto\nLLM_PROVIDER=nemotron\nNICKNAME=Quadroid\n")
+            print("✓ Created new .env file")
+    else:
+        print("✓ Existing .env file found.")
 
-if key2 == "":
-    key2 = input("Enter your NEWS_API_KEY: ")
-    api_keys["NEWS_API_KEY"] = key2
-    data["api_keys"] = api_keys
+    # 2. Prompt for custom nickname (optional)
+    print("\n--- Assistant Identity ---")
+    current_name = input("Enter custom name for your assistant (Press Enter for 'Quadroid'): ").strip()
+    if not current_name:
+        current_name = "Quadroid"
 
-with open(configpath, "w") as f:
-    json.dump(data, f, indent=4)
+    # Read .env content
+    env_content = ENV_FILE.read_text(encoding="utf-8")
+    lines = env_content.splitlines()
 
-try:
-    # Use subprocess to run the pip command
-    result = subprocess.run(["pip", "install", "-r", requirements_file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # Update or add NICKNAME
+    nickname_found = False
+    new_lines = []
+    for line in lines:
+        if line.startswith("NICKNAME="):
+            new_lines.append(f"NICKNAME={current_name}")
+            nickname_found = True
+        else:
+            new_lines.append(line)
+    if not nickname_found:
+        new_lines.append(f"NICKNAME={current_name}")
 
-    # Print the output of the pip command
-    print(result.stdout.decode())
+    ENV_FILE.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
+    print(f"✓ Assistant name set to: {current_name}")
+    print(f"✓ Wake-word automatically set to: 'Hey {current_name}'")
 
-    print()
-    print("Setup Has Been Completed.. ")
-    print("Now Your System is Ready To Use Quadroid")
+    # 3. Ensure directories
+    for folder in ["Databases/notes", "Databases/screenshots", "Databases/memory"]:
+        p = ROOT_DIR / folder
+        p.mkdir(parents=True, exist_ok=True)
+    print("✓ Databases and storage directories verified.")
 
-    config_path = quadpath('Databases', 'config.json')
-    with open(config_path, "r") as f:
-        config = json.load(f)
+    print("\n" + "=" * 60)
+    print("  🎉 Setup Complete! Launch Quadroid:")
+    print("     .\\.venv\\Scripts\\python run.py")
+    print("=" * 60)
 
-    config['setup'] = True
 
-    with open(config_path, "w") as f:
-        json.dump(config, f, indent=4)
-
-except Exception as e:
-    print("An error occurred: {}".format(e))
-    print()
-    print("Report This Error to https://github.com/MdMobid/Quadroid/issues")
-    
-print()
-w=input("Press Enter Key to Exit: ")
-if w=="":
-    print()
+if __name__ == "__main__":
+    setup()

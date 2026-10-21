@@ -2,9 +2,30 @@ import os
 import asyncio
 import threading
 import tempfile
+import logging
 from pathlib import Path
 from quadroid.config import Config
 from quadroid.audio.player import play_sound_async
+
+# Suppress pygame startup banner
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
+
+logger = logging.getLogger(__name__)
+
+# Global speech activity flag
+_is_speaking_lock = threading.Lock()
+_is_speaking = False
+
+def is_speaking() -> bool:
+    """Return True if TTS is actively speaking audio through speakers."""
+    return _is_speaking
+
+# Pygame Audio Player
+try:
+    import pygame
+    PYGAME_AVAILABLE = True
+except ImportError:
+    PYGAME_AVAILABLE = False
 
 # Offline TTS Engine
 try:
@@ -13,7 +34,7 @@ try:
 except ImportError:
     PYTTSX3_AVAILABLE = False
 
-# Online Neural TTS Engine
+# Online Neural TTS Engine (Edge-TTS)
 try:
     import edge_tts
     EDGE_TTS_AVAILABLE = True
@@ -22,22 +43,30 @@ except ImportError:
 
 
 class TTSEngine:
-    """Text-to-Speech Engine supporting offline pyttsx3 and online edge-tts."""
+    """Ultra-realistic Neural Text-to-Speech Engine with human-like prosody and pygame high-fidelity playback."""
 
     def __init__(self):
         self._lock = threading.Lock()
         self.offline_engine = None
+        
+        # Init pygame mixer for high-fidelity audio
+        if PYGAME_AVAILABLE:
+            try:
+                pygame.mixer.init()
+            except Exception:
+                pass
+
         if PYTTSX3_AVAILABLE:
             try:
                 self.offline_engine = pyttsx3.init()
-                self.offline_engine.setProperty('rate', 185)  # Natural speech speed
+                self.offline_engine.setProperty('rate', 175)  # Natural speed
                 self.offline_engine.setProperty('volume', 0.95)
             except Exception:
                 self.offline_engine = None
 
     def speak(self, text: str, async_mode: bool = True):
         """
-        Speak text out loud.
+        Speak text out loud using ultra-realistic Microsoft Neural voice.
         
         :param text: Text string to synthesize and speak.
         :param async_mode: If True, runs speech in background thread.
@@ -52,58 +81,76 @@ class TTSEngine:
             self._speak_sync(text)
 
     def _speak_sync(self, text: str):
+        global _is_speaking
         with self._lock:
-            # Check if online and edge-tts is preferred
-            use_edge = (
-                EDGE_TTS_AVAILABLE 
-                and Config.TTS_ENGINE == "edge-tts" 
-                and not Config.is_offline()
-            )
+            try:
+                _is_speaking = True
+                
+                # Check if online and edge-tts is preferred (Hyper-realistic Human Neural Voice)
+                use_edge = (
+                    EDGE_TTS_AVAILABLE 
+                    and Config.TTS_ENGINE == "edge-tts" 
+                    and not Config.is_offline()
+                )
 
-            if use_edge:
-                try:
-                    self._speak_edge_tts(text)
-                    return
-                except Exception:
-                    # Fallback to offline pyttsx3 on edge-tts error
-                    pass
-
-            # Offline pyttsx3 speech
-            if self.offline_engine:
-                try:
-                    self.offline_engine.say(text)
-                    self.offline_engine.runAndWait()
-                except Exception:
-                    # Re-init engine if stuck
+                if use_edge:
                     try:
-                        self.offline_engine = pyttsx3.init()
+                        self._speak_edge_tts(text)
+                        return
+                    except Exception as e:
+                        logger.warning(f"Edge-TTS failed ({e}), falling back to offline voice.")
+
+                # Offline pyttsx3 fallback
+                if self.offline_engine:
+                    try:
                         self.offline_engine.say(text)
                         self.offline_engine.runAndWait()
                     except Exception:
-                        pass
+                        try:
+                            self.offline_engine = pyttsx3.init()
+                            self.offline_engine.say(text)
+                            self.offline_engine.runAndWait()
+                        except Exception:
+                            pass
+            finally:
+                _is_speaking = False
 
     def _speak_edge_tts(self, text: str):
-        """Synthesize using Microsoft Edge Neural Voice."""
-        async def _generate_and_play():
-            communicate = edge_tts.Communicate(text, Config.EDGE_TTS_VOICE)
+        """Synthesize using Microsoft Edge Neural Voice with zero-latency Pygame playback."""
+        async def _generate():
+            voice = Config.EDGE_TTS_VOICE or "en-US-ChristopherNeural"
+            communicate = edge_tts.Communicate(text, voice)
             with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as temp_file:
                 temp_path = temp_file.name
-            
             await communicate.save(temp_path)
-            
-            # Play mp3
-            import subprocess
-            subprocess.run(
-                ["powershell", "-c", f'(New-Object Media.SoundPlayer "{temp_path}").PlaySync();'],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
-            )
+            return temp_path
+
+        temp_path = asyncio.run(_generate())
+
+        try:
+            if PYGAME_AVAILABLE:
+                import time
+                if not pygame.mixer.get_init():
+                    pygame.mixer.init()
+                pygame.mixer.music.load(temp_path)
+                pygame.mixer.music.play()
+                while pygame.mixer.music.get_busy():
+                    time.sleep(0.04)
+                pygame.mixer.music.unload()
+            else:
+                # Windows fallback
+                import subprocess
+                subprocess.run(
+                    ["powershell", "-c", f'(New-Object Media.SoundPlayer "{temp_path}").PlaySync();'],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL
+                )
+        finally:
             try:
-                os.remove(temp_path)
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
             except Exception:
                 pass
-
-        asyncio.run(_generate_and_play())
 
 
 # Global singleton instance
